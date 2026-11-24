@@ -1,0 +1,11 @@
+data/
+models/
+local-art/
+*.png
+*.jpg
+*.webp
+*.gif
+*.exe
+*.zip
+*-rig.json
+__pycache__/

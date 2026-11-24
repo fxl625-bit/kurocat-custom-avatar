@@ -1,0 +1,1898 @@
+diff --git a/avatar.html b/avatar.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa275a3de725d12cf99deaa4752585601e4156b5
+--- /dev/null
++++ b/avatar.html
+@@ -0,0 +1,37 @@
++<!doctype html>
++<html lang="zh-CN">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1" />
++    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; connect-src 'self' ipc: http://ipc.localhost" />
++    <title>KuroCat · 自定义形象</title>
++  </head>
++  <body>
++    <main>
++      <h1>自定义形象</h1>
++      <section class="motion-section" id="motion-section" hidden>
++        <h2>已定制的人像</h2>
++        <button id="portrait-motion" type="button" aria-pressed="false">使用动态人像</button>
++      </section>
++      <section id="anime-section" class="motion-section" hidden>
++        <h2>动漫角色试用</h2>
++        <div id="anime-characters" class="actions"></div>
++      </section>
++      <h2>照片形象</h2>
++      <p>选择图片后在本机抠图。已有透明背景的 PNG 和 WebP 可直接使用。</p>
++      <div class="preview" id="preview">
++        <img id="preview-image" alt="桌宠形象预览" hidden />
++        <span id="placeholder">请选择一张图片</span>
++      </div>
++      <div class="actions">
++        <button id="choose" type="button">选择图片</button>
++        <button id="cutout" type="button" disabled>抠掉背景</button>
++        <button id="apply" class="primary" type="button" disabled>应用到桌面</button>
++        <button id="restore" type="button" disabled>切回内置形象</button>
++      </div>
++      <input id="image-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" hidden />
++      <p id="status" aria-live="polite"></p>
++    </main>
++    <script type="module" src="/src/avatarMain.ts"></script>
++  </body>
++</html>
+diff --git a/index.html b/index.html
+index 6fc468ea9a9c8ae7008c07e9654a2da12209e525..ba16a3a4467640991afe59e187112153a4430b14 100644
+--- a/index.html
++++ b/index.html
+@@ -39,9 +39,12 @@
+     </div>
+ 
+     <div id="context-menu" class="context-menu hidden">
+-      <div class="menu-header" id="menu-header">🐈‍⬛ KuroCat 小黑猫</div>
++      <div class="menu-header" id="menu-header">🐈‍⬛ KuroCat Custom</div>
+       <div class="menu-scale-row">
+         <span class="menu-scale-label">角色外观（支持 MCP 定制）</span>
++        <button class="menu-item" data-action="custom-avatar" type="button">
++          <span>自定义形象…</span>
++        </button>
+         <div class="breed-pills" id="breed-pills">
+           <button class="breed-pill active" data-breed="black">🐈‍⬛ 小黑猫</button>
+           <button class="breed-pill" data-breed="ragdoll">🐱 布偶猫</button>
+@@ -165,12 +168,12 @@
+       <button class="menu-item" data-action="reset-pos">
+         <span>重置位置到右下角</span>
+       </button>
+-      <button class="menu-item" data-action="check-update" id="btn-check-update">
++      <button class="menu-item hidden" data-action="check-update" id="btn-check-update">
+         <span>检查更新</span>
+         <span class="menu-hint" id="update-hint">v5.0.2</span>
+       </button>
+       <button class="menu-item danger" data-action="quit">
+-        <span>退出 KuroCat</span>
++        <span>退出 KuroCat Custom</span>
+       </button>
+     </div>
+ 
+diff --git a/menu.html b/menu.html
+index 02738f6ea8c92ef402a64da67be88a68bb817baa..19e0e2a235b40afaa74e4da40ee124cd66cfe6e2 100644
+--- a/menu.html
++++ b/menu.html
+@@ -8,12 +8,15 @@
+   <body class="menu-window-body">
+     <div id="context-menu" class="context-menu floating-side-menu">
+       <div class="menu-header-row">
+-        <div class="menu-header" id="menu-header">🐈‍⬛ KuroCat 小黑猫</div>
++        <div class="menu-header" id="menu-header">🐈‍⬛ KuroCat Custom</div>
+         <button class="menu-close-btn" id="btn-close-menu" type="button" title="关闭菜单 (Esc)">×</button>
+       </div>
+ 
+       <div class="menu-scale-row">
+         <span class="menu-scale-label">角色外观（支持 MCP 定制）</span>
++        <button class="menu-item" data-action="custom-avatar" type="button">
++          <span>自定义形象…</span>
++        </button>
+         <div class="breed-pills" id="breed-pills"></div>
+       </div>
+ 
+@@ -161,12 +164,12 @@
+       <button class="menu-item" data-action="reset-pos">
+         <span>重置位置到右下角</span>
+       </button>
+-      <button class="menu-item" data-action="check-update" id="btn-check-update">
++      <button class="menu-item hidden" data-action="check-update" id="btn-check-update">
+         <span>检查更新</span>
+         <span class="menu-hint" id="update-hint">v5.0.2</span>
+       </button>
+       <button class="menu-item danger" data-action="quit">
+-        <span>退出 KuroCat</span>
++        <span>退出 KuroCat Custom</span>
+       </button>
+     </div>
+ 
+diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
+index 26e895b0e16f1234d028ddf6ea4eb1925f7558b8..6c9d329d313ca5002353307c6a3e66a06e66f410 100644
+--- a/src-tauri/Cargo.toml
++++ b/src-tauri/Cargo.toml
+@@ -10,7 +10,7 @@ name = "kuro_cat_pet_lib"
+ crate-type = ["staticlib", "cdylib", "rlib"]
+ 
+ [[bin]]
+-name = "KuroCat"
++name = "KuroCatCustom"
+ path = "src/main.rs"
+ 
+ [features]
+diff --git a/src-tauri/capabilities/default.json b/src-tauri/capabilities/default.json
+index 102a9c55b45cf7199b9b12db14610e3d80ec9b15..3a299423bf2c7780aa63907930f623c7291bdaa6 100644
+--- a/src-tauri/capabilities/default.json
++++ b/src-tauri/capabilities/default.json
+@@ -2,7 +2,7 @@
+   "$schema": "../gen/schemas/desktop-schema.json",
+   "identifier": "default",
+   "description": "Default capabilities for KuroCat Pet",
+-  "windows": ["main", "menu"],
++  "windows": ["main", "menu", "avatar"],
+   "permissions": [
+     "core:default",
+     "core:event:default",
+diff --git a/src-tauri/src/avatar.rs b/src-tauri/src/avatar.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..63d884301eb83b6d88c04db81c5a651cd2dd0fc2
+--- /dev/null
++++ b/src-tauri/src/avatar.rs
+@@ -0,0 +1,182 @@
++use serde::{Deserialize, Serialize};
++#[cfg(windows)]
++use std::{io::Write, os::windows::process::CommandExt, path::PathBuf, process::{Command, Stdio}};
++use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
++
++const IMAGE_PREFIX: &str = "data:image/webp;base64,";
++const MAX_IMAGE_LENGTH: usize = 3_000_000;
++
++fn valid_image(image: &str) -> bool {
++    image.len() <= MAX_IMAGE_LENGTH && image.starts_with(IMAGE_PREFIX)
++}
++
++#[derive(Deserialize, Serialize)]
++#[serde(rename_all = "kebab-case")]
++pub enum Character {
++    PhotographedPortrait,
++    Luffy,
++    Nami,
++    Naruto,
++}
++impl Character {
++    fn rig_name(&self) -> &'static str {
++        match self {
++            Self::PhotographedPortrait => "portrait-motion.json",
++            Self::Luffy => "luffy-rig.json",
++            Self::Nami => "nami-rig.json",
++            Self::Naruto => "naruto-rig.json",
++        }
++    }
++}
++#[tauri::command]
++pub fn available_anime() -> Vec<Character> {
++    let dir = crate::config::app_data_dir();
++    [Character::Luffy, Character::Nami, Character::Naruto].into_iter()
++        .filter(|character| dir.join(character.rig_name()).is_file()).collect()
++}
++
++#[derive(Default, Deserialize, Serialize)]
++#[serde(rename_all = "camelCase")]
++pub struct Avatar {
++    image: Option<String>,
++    enabled: bool,
++    #[serde(default)]
++    character: Option<Character>,
++}
++
++#[tauri::command]
++pub fn get_avatar() -> Result<Avatar, String> {
++    let path = crate::config::app_data_dir().join("avatar.json");
++    match std::fs::read(path) {
++        Ok(data) => serde_json::from_slice(&data).map_err(|err| err.to_string()),
++        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Avatar::default()),
++        Err(err) => Err(err.to_string()),
++    }
++}
++
++#[tauri::command]
++pub fn get_portrait_rig(character: Option<Character>) -> Result<Option<serde_json::Value>, String> {
++    let path = crate::config::app_data_dir().join(character.unwrap_or(Character::PhotographedPortrait).rig_name());
++    match std::fs::read(path) {
++        Ok(data) if data.len() <= 2_000_000 => serde_json::from_slice(&data)
++            .map(Some)
++            .map_err(|err| err.to_string()),
++        Ok(_) => Err("Portrait data is too large".into()),
++        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
++        Err(err) => Err(err.to_string()),
++    }
++}
++
++#[tauri::command]
++pub fn has_portrait_rig() -> bool {
++    crate::config::app_data_dir().join("portrait-motion.json").is_file()
++}
++
++#[tauri::command]
++pub fn save_avatar(app: AppHandle, avatar: Avatar) -> Result<(), String> {
++    if avatar.enabled && avatar.character.is_some() {
++        return Err("Choose one active appearance".into());
++    }
++    if let Some(character) = &avatar.character {
++        if !crate::config::app_data_dir().join(character.rig_name()).is_file() {
++            return Err("找不到角色动作素材。".into());
++        }
++    }
++    if let Some(image) = &avatar.image {
++        if !valid_image(image) {
++            return Err("Invalid image data".into());
++        }
++    } else if avatar.enabled {
++        return Err("Select an image first".into());
++    }
++
++    let path = crate::config::app_data_dir().join("avatar.json");
++    crate::config::write_json_atomic(path, &avatar).map_err(|err| err.to_string())?;
++    let _ = app.emit_to("main", "kuro-avatar-changed", ());
++    Ok(())
++}
++
++#[tauri::command]
++pub async fn cutout_avatar(image: String) -> Result<String, String> {
++    if !valid_image(&image) {
++        return Err("图片数据无效，请重新选择。".into());
++    }
++
++    tauri::async_runtime::spawn_blocking(move || run_cutout(image))
++        .await
++        .map_err(|_| String::from("抠图任务中断，请重试。"))?
++}
++
++#[cfg(windows)]
++fn run_cutout(image: String) -> Result<String, String> {
++    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
++    let runtime_error = "本机抠图组件不可用。";
++    let exe = std::env::current_exe().map_err(|_| runtime_error.to_string())?;
++    let app_dir = exe.parent().ok_or(runtime_error)?;
++    let python = std::env::var_os("LOCALAPPDATA")
++        .map(PathBuf::from)
++        .ok_or(runtime_error)?
++        .join("Programs").join("Python").join("Python310").join("python.exe");
++    let models = app_dir.join("models");
++    if !python.is_file() || !models.join("isnet-general-use.onnx").is_file() {
++        return Err(runtime_error.into());
++    }
++    let temporary_dir = crate::config::app_data_dir().join("tmp");
++    std::fs::create_dir_all(&temporary_dir).map_err(|_| runtime_error.to_string())?;
++
++    let mut child = Command::new(python)
++        .args(["-I", "-B", "-c", include_str!("avatar_cutout.py")])
++        .env("U2NET_HOME", models)
++        .env("OMP_NUM_THREADS", "4")
++        .env("TEMP", &temporary_dir)
++        .env("TMP", &temporary_dir)
++        .creation_flags(CREATE_NO_WINDOW)
++        .stdin(Stdio::piped())
++        .stdout(Stdio::piped())
++        .stderr(Stdio::piped())
++        .spawn()
++        .map_err(|_| runtime_error.to_string())?;
++    let write_result = child.stdin.take()
++        .ok_or(runtime_error)?
++        .write_all(image.as_bytes());
++    let output = child.wait_with_output().map_err(|_| runtime_error.to_string())?;
++    if !output.status.success() {
++        let error = String::from_utf8_lossy(&output.stderr);
++        if error.contains("No distinct foreground and background") {
++            return Err("未能分出主体和背景，请换一张轮廓更清楚的图片。".into());
++        }
++        eprintln!("Local avatar cutout failed: {error}");
++        return Err("抠图失败，请重试或选择一张透明 PNG。".into());
++    }
++    write_result.map_err(|_| runtime_error.to_string())?;
++    let image = String::from_utf8(output.stdout).map_err(|_| runtime_error.to_string())?;
++    if valid_image(&image) {
++        Ok(image)
++    } else {
++        Err("抠图结果无效，请换一张图。".into())
++    }
++}
++
++#[cfg(not(windows))]
++fn run_cutout(_image: String) -> Result<String, String> {
++    Err("此版本的自动抠图需要 Windows。".into())
++}
++
++#[tauri::command]
++pub async fn open_avatar_window(app: AppHandle) -> Result<(), String> {
++    if let Some(window) = app.get_webview_window("avatar") {
++        window.show().map_err(|err| err.to_string())?;
++        return window.set_focus().map_err(|err| err.to_string());
++    }
++
++    WebviewWindowBuilder::new(&app, "avatar", WebviewUrl::App("avatar.html".into()))
++        .title("KuroCat · 自定义形象")
++        .inner_size(492.0, 656.0)
++        .min_inner_size(360.0, 475.0)
++        .center()
++        .always_on_top(true)
++        .additional_browser_args("--autoplay-policy=no-user-gesture-required")
++        .build()
++        .map(|_| ())
++        .map_err(|err| err.to_string())
++}
+diff --git a/src-tauri/src/avatar_cutout.py b/src-tauri/src/avatar_cutout.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4a93252c3e29929d09fd16fe45d81328eadb184f
+--- /dev/null
++++ b/src-tauri/src/avatar_cutout.py
+@@ -0,0 +1,52 @@
++import base64
++from io import BytesIO
++import os
++import sys
++
++from PIL import Image, ImageChops
++from rembg import new_session, remove
++
++MODEL = "isnet-general-use"
++PREFIX = "data:image/webp;base64,"
++
++
++def cutout(source):
++    rgb = source.convert("RGB")
++    session = new_session(MODEL, providers=["CPUExecutionProvider"])
++    mask = remove(rgb, session=session, only_mask=True).convert("L")
++    mask = mask.point(
++        lambda value: 0 if value <= 12 else 255 if value >= 244 else round((value - 12) * 255 / 232)
++    )
++    if "A" in source.getbands():
++        mask = ImageChops.multiply(mask, source.getchannel("A"))
++    histogram = mask.histogram()
++    pixels = source.width * source.height
++    if sum(histogram[96:]) < pixels * 0.015 or sum(histogram[:96]) < pixels * 0.015:
++        raise ValueError("No distinct foreground and background")
++    clean = Image.new("RGB", source.size)
++    clean.paste(rgb, (0, 0), mask.point(lambda value: 255 if value else 0))
++    clean.putalpha(mask)
++    return clean
++
++
++def main():
++    model_dir = os.environ["U2NET_HOME"]
++    if not os.path.isfile(os.path.join(model_dir, MODEL + ".onnx")):
++        raise FileNotFoundError("Local cutout model is missing")
++    payload = sys.stdin.buffer.read(3_000_001)
++    prefix = PREFIX.encode("ascii")
++    if len(payload) > 3_000_000 or not payload.startswith(prefix):
++        raise ValueError("Invalid avatar data")
++    raw = base64.b64decode(payload[len(prefix):], validate=True)
++    with Image.open(BytesIO(raw)) as source:
++        if max(source.size) > 768:
++            raise ValueError("Unexpected image size")
++        result = cutout(source.convert("RGBA"))
++    result = result.crop(result.getchannel("A").getbbox())
++    encoded = BytesIO()
++    result.save(encoded, format="WEBP", quality=93, method=4, exact=False)
++    sys.stdout.write(PREFIX + base64.b64encode(encoded.getvalue()).decode("ascii"))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/src-tauri/src/config.rs b/src-tauri/src/config.rs
+index 184bba59e0f98438f3fe97a5eb1035d3e21c306a..d2ab1e503456ada17856c5886458ea0f7f6d9327 100644
+--- a/src-tauri/src/config.rs
++++ b/src-tauri/src/config.rs
+@@ -8,7 +8,7 @@ fn default_cat_breed() -> String {
+ }
+ 
+ fn default_mcp_enabled() -> bool {
+-    true
++    false
+ }
+ 
+ fn default_privacy_password_guard() -> bool {
+@@ -16,7 +16,7 @@ fn default_privacy_password_guard() -> bool {
+ }
+ 
+ fn default_mcp_port() -> u16 {
+-    27420
++    27422
+ }
+ 
+ fn default_obs_enabled() -> bool {
+@@ -24,7 +24,7 @@ fn default_obs_enabled() -> bool {
+ }
+ 
+ fn default_obs_port() -> u16 {
+-    27421
++    27423
+ }
+ 
+ fn default_obs_hide_pet() -> bool {
+@@ -221,10 +221,10 @@ impl Default for AppSettings {
+ pub fn app_data_dir() -> PathBuf {
+     #[cfg(windows)]
+     {
+-        let base = std::env::var("APPDATA")
+-            .map(PathBuf::from)
+-            .unwrap_or_else(|_| PathBuf::from("."));
+-        base.join("kuro-cat-pet")
++        std::env::current_exe()
++            .ok()
++            .and_then(|path| path.parent().map(|parent| parent.join("data")))
++            .unwrap_or_else(|| PathBuf::from("data"))
+     }
+     #[cfg(target_os = "macos")]
+     {
+@@ -269,12 +269,15 @@ pub fn save_settings(settings: &AppSettings) {
+ }
+ 
+ pub fn try_save_settings(settings: &AppSettings) -> std::io::Result<()> {
++    write_json_atomic(config_path(), settings)
++}
++
++pub fn write_json_atomic(path: PathBuf, value: &impl Serialize) -> std::io::Result<()> {
+     static NEXT_WRITE: AtomicUsize = AtomicUsize::new(0);
+-    let path = config_path();
+     if let Some(parent) = path.parent() {
+         fs::create_dir_all(parent)?;
+     }
+-    let json = serde_json::to_string_pretty(settings).map_err(std::io::Error::other)?;
++    let json = serde_json::to_string_pretty(value).map_err(std::io::Error::other)?;
+     let write_id = NEXT_WRITE.fetch_add(1, Ordering::Relaxed);
+     let temporary_path = path.with_extension(format!("json.{}.{write_id}.tmp", std::process::id()));
+     let result = fs::write(&temporary_path, json).and_then(|()| fs::rename(&temporary_path, path));
+@@ -301,8 +304,7 @@ pub fn set_windows_autostart(enabled: bool) -> Result<(), String> {
+     }
+ 
+     let subkey = to_wide("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+-    let value_name = to_wide("KuroCat");
+-    let legacy_value_name = to_wide("KuroCatPet");
++    let value_name = to_wide("KuroCatCustom");
+ 
+     unsafe {
+         let mut hkey: HKEY = std::ptr::null_mut();
+@@ -317,8 +319,7 @@ pub fn set_windows_autostart(enabled: bool) -> Result<(), String> {
+             return Err(format!("RegOpenKeyExW failed with code {}", status));
+         }
+ 
+-        // Clean up legacy autostart key so users upgrading from <=v4.2 never run two copies
+-        let _ = RegDeleteValueW(hkey, legacy_value_name.as_ptr());
++
+ 
+         let result = if enabled {
+             let exe = std::env::current_exe()
+@@ -445,13 +446,13 @@ pub fn create_desktop_shortcut() -> Result<String, String> {
+ 
+     let script = format!(
+         "$desktop = [Environment]::GetFolderPath('Desktop'); \
+-         $lnk = Join-Path $desktop 'KuroCat.lnk'; \
++         $lnk = Join-Path $desktop 'KuroCat Custom.lnk'; \
+          $ws = New-Object -ComObject WScript.Shell; \
+          $s = $ws.CreateShortcut($lnk); \
+          $s.TargetPath = '{exe}'; \
+          $s.WorkingDirectory = '{wd}'; \
+          $s.IconLocation = '{exe},0'; \
+-         $s.Description = 'KuroCat Desktop Companion'; \
++         $s.Description = 'KuroCat Custom Desktop Companion'; \
+          $s.Save(); \
+          Write-Output $lnk",
+         exe = exe_str,
+diff --git a/src-tauri/src/input_hook.rs b/src-tauri/src/input_hook.rs
+index 5ba18f39fbc6b0f5d9972adf28a655a794d532ac..46a8103aa622f108ffa29b9292fc229a6862babf 100644
+--- a/src-tauri/src/input_hook.rs
++++ b/src-tauri/src/input_hook.rs
+@@ -355,6 +355,9 @@ pub fn start_global_hooks(app: AppHandle) {
+         let mut mouse_down = [false; 3]; // 0: left, 1: right, 2: middle
+         let mut last_reconcile = Instant::now();
+ 
++        #[cfg(windows)]
++        let mut mouse_down_at = [Instant::now(); 3];
++
+         let btn_index = |btn: &str| -> Option<usize> {
+             match btn {
+                 "left" => Some(0),
+@@ -398,7 +401,7 @@ pub fn start_global_hooks(app: AppHandle) {
+ 
+         #[cfg(windows)]
+         let reconcile_windows_held_state =
+-            |app: &AppHandle, dedup: &mut KeyDeduplicator, mouse_down: &mut [bool; 3]| {
++            |app: &AppHandle, dedup: &mut KeyDeduplicator, mouse_down: &mut [bool; 3], mouse_down_at: &[Instant; 3]| {
+                 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+                     GetAsyncKeyState, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON,
+                 };
+@@ -406,6 +409,9 @@ pub fn start_global_hooks(app: AppHandle) {
+                     GetSystemMetrics, SM_SWAPBUTTON,
+                 };
+ 
++                // A low-level hook is delivered before the OS updates async key
++                // state. Do not synthesize a release on the same fresh press.
++                let settle = Duration::from_millis(80);
+                 let swapped = unsafe { GetSystemMetrics(SM_SWAPBUTTON) != 0 };
+                 let (left_vk, right_vk) = if swapped {
+                     (VK_RBUTTON as i32, VK_LBUTTON as i32)
+@@ -418,7 +424,7 @@ pub fn start_global_hooks(app: AppHandle) {
+                     (2usize, VK_MBUTTON as i32, "middle"),
+                 ];
+                 for (idx, os_vk, name) in checks {
+-                    if mouse_down[idx] {
++                    if mouse_down[idx] && mouse_down_at[idx].elapsed() >= settle {
+                         let physically_down =
+                             unsafe { (GetAsyncKeyState(os_vk) as u16 & 0x8000) != 0 };
+                         if !physically_down {
+@@ -434,7 +440,8 @@ pub fn start_global_hooks(app: AppHandle) {
+                 }
+ 
+                 for vk in 1..dedup.logical_pressed.len() {
+-                    if !dedup.logical_pressed[vk] {
++                    if !dedup.logical_pressed[vk]
++                        || dedup.last_down[vk].is_some_and(|(at, _)| at.elapsed() < settle) {
+                         continue;
+                     }
+                     let os_vk = if vk == 0x10D {
+@@ -511,6 +518,8 @@ pub fn start_global_hooks(app: AppHandle) {
+                     RawHookMsg::MouseDown(btn) => {
+                         if let Some(i) = btn_index(btn) {
+                             mouse_down[i] = true;
++                            #[cfg(windows)]
++                            { mouse_down_at[i] = Instant::now(); }
+                         }
+                         emit_input(
+                             &app,
+@@ -556,7 +565,7 @@ pub fn start_global_hooks(app: AppHandle) {
+                 let now = Instant::now();
+                 if now.duration_since(last_reconcile) >= Duration::from_millis(450) {
+                     last_reconcile = now;
+-                    reconcile_windows_held_state(&app, &mut dedup, &mut mouse_down);
++                    reconcile_windows_held_state(&app, &mut dedup, &mut mouse_down, &mouse_down_at);
+                 }
+             }
+             #[cfg(not(windows))]
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 7b6a31980e1c3393d0310feb50087be1fcd9e4a0..0c482ab8f55d8b2bb275fe469959097bf396b88b 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -31,6 +31,8 @@ use std::sync::{Arc, Mutex};
+ use std::time::{Duration, Instant, SystemTime};
+ use tauri::{AppHandle, Emitter, Listener, LogicalSize, Manager, PhysicalPosition, Size, State};
+ 
++mod avatar;
++
+ pub const BASE_WIDTH: f64 = 420.0;
+ pub const BASE_HEIGHT: f64 = 440.0;
+ pub const BASE_WIDTH_108: f64 = 540.0;
+@@ -325,10 +327,10 @@ fn update_settings(app: AppHandle, state: State<'_, AppState>, mut patch: AppSet
+         "black".to_string()
+     };
+     if patch.mcp_port == 0 {
+-        patch.mcp_port = 27420;
++        patch.mcp_port = 27422;
+     }
+     if patch.obs_port == 0 {
+-        patch.obs_port = 27421;
++        patch.obs_port = 27423;
+     }
+     if !patch.obs_enabled {
+         patch.obs_hide_pet = false;
+@@ -2301,7 +2303,9 @@ pub fn run() {
+                 }
+             }
+ 
+-            tray::setup_tray(&handle, &s)?;
++            if let Err(error) = tray::setup_tray(&handle, &s) {
++                eprintln!("Failed to open the notification area icon: {error}");
++            }
+             input_hook::start_global_hooks(handle.clone());
+             privacy::start_password_privacy_watcher(
+                 handle.clone(),
+@@ -2322,10 +2326,10 @@ pub fn run() {
+                 paused_for_setup,
+             );
+             start_storage_watcher(handle.clone());
+-            updater::start_background_update_checker(handle.clone());
++
+ 
+             let http_handle = handle.clone();
+-            let mcp_port = if s.mcp_port == 0 { 27420 } else { s.mcp_port };
++            let mcp_port = if s.mcp_port == 0 { 27422 } else { s.mcp_port };
+             mcp::start_http_mcp_server(mcp_port, mcp_for_setup, move || {
+                 reload_and_emit_all(&http_handle);
+             });
+@@ -2411,9 +2415,13 @@ pub fn run() {
+             save_window_pos,
+             reset_position,
+             create_desktop_shortcut,
+-            check_for_update,
+-            install_update,
+-            open_release_page,
++            avatar::get_avatar,
++            avatar::get_portrait_rig,
++            avatar::has_portrait_rig,
++            avatar::available_anime,
++            avatar::save_avatar,
++            avatar::cutout_avatar,
++            avatar::open_avatar_window,
+             quit_app,
+         ])
+         .run(tauri::generate_context!())
+diff --git a/src-tauri/src/obs.rs b/src-tauri/src/obs.rs
+index 11d49c8ca14c868735f385eee9f6becfb8a1aae5..d214a7f469745b134db3f5460958b62e2640a4d3 100644
+--- a/src-tauri/src/obs.rs
++++ b/src-tauri/src/obs.rs
+@@ -46,7 +46,7 @@ impl Drop for ClientGuard {
+ }
+ 
+ pub fn obs_url(port: u16) -> String {
+-    let p = if port == 0 { 27421 } else { port };
++    let p = if port == 0 { 27423 } else { port };
+     format!("http://127.0.0.1:{}/obs", p)
+ }
+ 
+@@ -122,7 +122,7 @@ fn stop_locked(slot: &mut Option<ObsServerControl>) {
+ 
+ /// Starts, stops, or restarts the local OBS Browser Source server to match `enabled` & `port`.
+ pub fn sync_obs_server(app: &AppHandle, enabled: bool, port: u16) {
+-    let actual_port = if port == 0 { 27421 } else { port };
++    let actual_port = if port == 0 { 27423 } else { port };
+     let mut slot = control_slot().lock().unwrap();
+ 
+     if !enabled {
+diff --git a/src-tauri/src/tray.rs b/src-tauri/src/tray.rs
+index 861dac669f1ada7829a33683617a7a8fc5566aff..35d8a9f020dd8ed118e32194ef6f88df3e83c873 100644
+--- a/src-tauri/src/tray.rs
++++ b/src-tauri/src/tray.rs
+@@ -16,7 +16,7 @@ fn default_tray_tooltip() -> &'static str {
+             return "KuroCat（管理员 · 游戏模式就绪）";
+         }
+     }
+-    "KuroCat"
++    "KuroCat Custom"
+ }
+ 
+ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+@@ -100,7 +100,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+         None::<&str>,
+     )?;
+ 
+-    let obs_port = if initial.obs_port == 0 { 27421 } else { initial.obs_port };
++    let obs_port = if initial.obs_port == 0 { 27423 } else { initial.obs_port };
+     let obs_toggle = CheckMenuItem::with_id(
+         app,
+         "obs_toggle",
+@@ -201,7 +201,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+     let reset_pos = MenuItem::with_id(app, "reset_pos", "重置位置到右下角", true, None::<&str>)?;
+     #[cfg(windows)]
+     let desktop_shortcut =
+-        MenuItem::with_id(app, "desktop_shortcut", "创建桌面快捷方式 (KuroCat)", true, None::<&str>)?;
++        MenuItem::with_id(app, "desktop_shortcut", "创建桌面快捷方式 (KuroCat Custom)", true, None::<&str>)?;
+     #[cfg(target_os = "macos")]
+     let mac_input_menu = {
+         let mac_reconnect = MenuItem::with_id(
+@@ -246,14 +246,9 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+             ],
+         )?
+     };
+-    let check_update = MenuItem::with_id(
+-        app,
+-        "check_update",
+-        format!("检查更新 (v{})", crate::updater::CURRENT_VERSION),
+-        true,
+-        None::<&str>,
+-    )?;
+-    let quit = MenuItem::with_id(app, "quit", "退出 KuroCat", true, None::<&str>)?;
++    let custom_avatar =
++        MenuItem::with_id(app, "custom_avatar", "自定义形象…", true, None::<&str>)?;
++    let quit = MenuItem::with_id(app, "quit", "退出 KuroCat Custom", true, None::<&str>)?;
+ 
+     let sep1 = PredefinedMenuItem::separator(app)?;
+     let sep2 = PredefinedMenuItem::separator(app)?;
+@@ -281,7 +276,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+             &autostart,
+             &obs_menu,
+             &mcp_toggle,
+-            &check_update,
++            &custom_avatar,
+             &sep2,
+             &quit,
+         ],
+@@ -309,7 +304,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+             &autostart,
+             &obs_menu,
+             &mcp_toggle,
+-            &check_update,
++            &custom_avatar,
+             &sep2,
+             &quit,
+         ],
+@@ -335,7 +330,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+             &autostart,
+             &obs_menu,
+             &mcp_toggle,
+-            &check_update,
++            &custom_avatar,
+             &sep2,
+             &quit,
+         ],
+@@ -487,7 +482,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+                             s.obs_hide_pet = false;
+                         }
+                         if s.obs_port == 0 {
+-                            s.obs_port = 27421;
++                            s.obs_port = 27423;
+                         }
+                         crate::config::save_settings(&s);
+                         (s.obs_enabled, s.obs_port, s.clone())
+@@ -510,7 +505,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+                             s.obs_enabled = true;
+                         }
+                         if s.obs_port == 0 {
+-                            s.obs_port = 27421;
++                            s.obs_port = 27423;
+                         }
+                         s.obs_hide_pet = next_hide;
+                         crate::config::save_settings(&s);
+@@ -528,7 +523,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+                     let (port, enabled_changed, updated) = {
+                         let mut s = state.settings.lock().unwrap();
+                         if s.obs_port == 0 {
+-                            s.obs_port = 27421;
++                            s.obs_port = 27423;
+                         }
+                         let changed = !s.obs_enabled;
+                         if changed {
+@@ -599,43 +594,10 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
+                 "mac_open_accessibility" => {
+                     crate::input_hook::macos_hook::open_macos_privacy_pane("accessibility");
+                 }
+-                "check_update" => {
+-                    let app_clone = app.clone();
+-                    set_pet_visible(app, true);
+-                    let _ = app_clone.emit(
+-                        "kuro-update-status",
+-                        crate::updater::UpdateProgressEvent {
+-                            stage: "checking".to_string(),
+-                            message: "正在检查新版本...".to_string(),
+-                            info: None,
+-                        },
+-                    );
+-                    std::thread::spawn(move || match crate::updater::check_latest_update() {
+-                        Ok(info) => {
+-                            let (stage, msg) = if info.has_update {
+-                                ("available", format!("发现新版本 v{}", info.latest_version))
+-                            } else {
+-                                ("up_to_date", format!("已是最新版本 v{}", info.current_version))
+-                            };
+-                            let _ = app_clone.emit(
+-                                "kuro-update-status",
+-                                crate::updater::UpdateProgressEvent {
+-                                    stage: stage.to_string(),
+-                                    message: msg,
+-                                    info: Some(info),
+-                                },
+-                            );
+-                        }
+-                        Err(err) => {
+-                            let _ = app_clone.emit(
+-                                "kuro-update-status",
+-                                crate::updater::UpdateProgressEvent {
+-                                    stage: "error".to_string(),
+-                                    message: err,
+-                                    info: None,
+-                                },
+-                            );
+-                        }
++                "custom_avatar" => {
++                    let app = app.clone();
++                    tauri::async_runtime::spawn(async move {
++                        let _ = crate::avatar::open_avatar_window(app).await;
+                     });
+                 }
+                 "reset_pos" => reset_window_position(app),
+diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
+index 8b28d850c0a64f19db5623c1365161f9472d036b..f7ac3bb14b9d6556697cc00cb44f76ba105d89aa 100644
+--- a/src-tauri/tauri.conf.json
++++ b/src-tauri/tauri.conf.json
+@@ -1,8 +1,8 @@
+ {
+   "$schema": "https://schema.tauri.app/config/2",
+-  "productName": "KuroCat",
++  "productName": "KuroCat Custom",
+   "version": "5.0.2",
+-  "identifier": "com.kurocat.pet",
++  "identifier": "com.kurocat.custom",
+   "build": {
+     "beforeDevCommand": "npm run dev",
+     "devUrl": "http://localhost:1420",
+@@ -15,7 +15,7 @@
+     "windows": [
+       {
+         "label": "main",
+-        "title": "KuroCat",
++        "title": "KuroCat Custom",
+         "width": 420,
+         "height": 440,
+         "resizable": false,
+diff --git a/src/avatar.css b/src/avatar.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..839d8f6c1609db31f7c7d44760de0d6e5fb9f6ab
+--- /dev/null
++++ b/src/avatar.css
+@@ -0,0 +1,41 @@
++* { box-sizing: border-box; }
++:root {
++  color-scheme: light;
++  font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
++  background: #fbfaf7;
++  color: #232720;
++}
++body { margin: 0; }
++main { max-width: 560px; padding: 24px; margin: 0 auto; }
++h1 { font-size: 25px; margin: 0 0 8px; }
++p { font-size: 13px; line-height: 1.7; color: #565d51; margin: 0 0 14px; }
++h2 { margin: 0 0 7px; font-size: 15px; }
++.motion-section { padding-bottom: 14px; margin: 12px 0; border-bottom: 1px solid #dedfd6; }
++.motion-section button[aria-pressed="true"] { background: #315a42; border-color: #315a42; color: white; }
++.preview {
++  height: clamp(142px, 36vh, 240px);
++  display: grid;
++  place-items: center;
++  padding: 12px;
++  border: 1px solid #d7ddd0;
++  border-radius: 14px;
++  background: repeating-conic-gradient(#f0f1eb 0% 25%, #fafbf6 0% 50%) 0 0 / 22px 22px;
++}
++.preview img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
++.preview span { font-size: 13px; color: #565d51; }
++.actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 10px; }
++button {
++  appearance: none;
++  font: inherit;
++  font-size: 13px;
++  padding: 8px 11px;
++  border: 1px solid #ccd4c7;
++  color: inherit;
++  background: #fff;
++  border-radius: 8px;
++  cursor: pointer;
++}
++button.primary { background: #315a42; border-color: #315a42; color: white; }
++button:disabled { opacity: .5; cursor: default; }
++button:focus-visible { outline: 2px solid #356040; outline-offset: 2px; }
++#status { min-height: 22px; margin: 0; }
+diff --git a/src/avatarMain.ts b/src/avatarMain.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc2bdfd7d56084a05f777d92daca2e43534b5278
+--- /dev/null
++++ b/src/avatarMain.ts
+@@ -0,0 +1,200 @@
++import { invoke } from '@tauri-apps/api/core';
++import './avatar.css';
++
++
++const animeNames = { luffy: '路飞', nami: '娜美', naruto: '鸣人' } as const;
++type AnimeId = keyof typeof animeNames;
++interface Avatar {
++  image: string | null;
++  enabled: boolean;
++  character?: 'photographed-portrait' | AnimeId | null;
++}
++
++const input = document.querySelector<HTMLInputElement>('#image-file')!;
++const preview = document.querySelector<HTMLImageElement>('#preview-image')!;
++const placeholder = document.querySelector<HTMLElement>('#placeholder')!;
++const status = document.querySelector<HTMLElement>('#status')!;
++const choose = document.querySelector<HTMLButtonElement>('#choose')!;
++const cutout = document.querySelector<HTMLButtonElement>('#cutout')!;
++const apply = document.querySelector<HTMLButtonElement>('#apply')!;
++const restore = document.querySelector<HTMLButtonElement>('#restore')!;
++const motionSection = document.querySelector<HTMLElement>('#motion-section')!;
++const motion = document.querySelector<HTMLButtonElement>('#portrait-motion')!;
++motion.addEventListener('click', () => {
++  if (!busy) void save({ ...saved, enabled: false, character: 'photographed-portrait' });
++});
++
++const animeButtons = new Map<AnimeId, HTMLButtonElement>();
++void invoke<AnimeId[]>('available_anime').then((ids) => {
++  for (const id of ids) {
++    const button = document.createElement('button');
++    button.textContent = animeNames[id];
++    button.type = 'button';
++    button.dataset.character = id;
++    button.addEventListener('click', () => { if (!busy) void save({ ...saved, enabled: false, character: id }); });
++    document.querySelector('#anime-characters')!.append(button);
++    animeButtons.set(id, button);
++  }
++  document.querySelector<HTMLElement>('#anime-section')!.hidden = !ids.length;
++  refresh();
++}).catch(() => {});
++
++function characterName(id: NonNullable<Avatar['character']>): string {
++  return id === 'photographed-portrait' ? '动态人像' : animeNames[id];
++}
++
++let saved: Avatar = { image: null, enabled: false };
++let selected: string | null = null;
++let busy = true;
++
++function refresh(): void {
++  const image = selected ?? saved.image;
++  if (image) {
++    if (preview.getAttribute('src') !== image) preview.src = image;
++  } else {
++    preview.removeAttribute('src');
++  }
++  preview.hidden = !image;
++  placeholder.hidden = Boolean(image);
++  choose.disabled = busy;
++  cutout.disabled = busy || !image;
++  apply.disabled = busy || !image;
++  restore.disabled = busy || (!saved.enabled && !saved.character);
++  for (const [id, button] of animeButtons) {
++    button.disabled = busy;
++    button.setAttribute('aria-pressed', String(saved.character === id));
++  }
++  motion.disabled = busy;
++  motion.setAttribute('aria-pressed', String(saved.character === 'photographed-portrait'));
++  motion.textContent = saved.character === 'photographed-portrait' ? '正在使用动态人像' : '使用动态人像';
++}
++
++async function prepareImage(file: File): Promise<{ image: string; transparent: boolean }> {
++  if (file.size > 24 * 1024 * 1024) throw new Error('请选择 24 MB 以内的图片。');
++  if (file.type && !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
++    throw new Error('请选择 PNG、JPG 或 WebP 图片。');
++  }
++
++  const image = new Image();
++  const url = URL.createObjectURL(file);
++  try {
++    image.src = url;
++    await image.decode();
++    const ratio = Math.min(1, 768 / Math.max(image.naturalWidth, image.naturalHeight));
++    const canvas = document.createElement('canvas');
++    canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
++    canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
++    const ctx = canvas.getContext('2d')!;
++    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
++
++    // Trim blank margins so a transparent cutout sits directly above the keyboard.
++    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
++    let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
++    let clearPixels = 0;
++    for (let y = 0; y < canvas.height; y++) {
++      for (let x = 0; x < canvas.width; x++) {
++        if (data[(y * canvas.width + x) * 4 + 3] <= 8) {
++          clearPixels++;
++          continue;
++        }
++        left = Math.min(left, x);
++        right = Math.max(right, x);
++        top = Math.min(top, y);
++        bottom = Math.max(bottom, y);
++      }
++    }
++    if (right < left) throw new Error('这张图片完全透明，请换一张。');
++    const cropped = document.createElement('canvas');
++    cropped.width = right - left + 1;
++    cropped.height = bottom - top + 1;
++    cropped.getContext('2d')!.drawImage(canvas, -left, -top);
++    const originalPixels = canvas.width * canvas.height;
++    const trimmedPixels = originalPixels - cropped.width * cropped.height;
++    return {
++      image: cropped.toDataURL('image/webp', 0.93),
++      transparent: clearPixels - trimmedPixels > cropped.width * cropped.height * 0.02,
++    };
++  } finally {
++    URL.revokeObjectURL(url);
++  }
++}
++
++async function removeBackground(image: string): Promise<string> {
++  status.textContent = '正在本机抠图…';
++  return invoke<string>('cutout_avatar', { image });
++}
++
++cutout.addEventListener('click', async () => {
++  const image = selected ?? saved.image;
++  if (!image || busy) return;
++  busy = true;
++  refresh();
++  try {
++    selected = await removeBackground(image);
++    status.textContent = '背景已去除，可应用到桌面。';
++  } catch (error) {
++    status.textContent = String(error);
++  } finally {
++    busy = false;
++    refresh();
++  }
++});
++
++choose.addEventListener('click', () => input.click());
++input.addEventListener('change', async () => {
++  const file = input.files?.[0];
++  input.value = '';
++  if (!file || busy) return;
++  busy = true;
++  refresh();
++  try {
++    const imported = await prepareImage(file);
++    selected = imported.transparent ? imported.image : await removeBackground(imported.image);
++    status.textContent = imported.transparent
++      ? '已保留透明背景，可应用到桌面。'
++      : '背景已去除，可应用到桌面。';
++  } catch (error) {
++    status.textContent = error instanceof DOMException
++      ? '无法读取图片，请换一张 PNG、JPG 或 WebP。'
++      : String(error).replace(/^Error: /, '');
++  } finally {
++    busy = false;
++    refresh();
++  }
++});
++
++async function save(avatar: Avatar): Promise<void> {
++  busy = true;
++  refresh();
++  try {
++    await invoke('save_avatar', { avatar });
++    saved = avatar;
++    selected = null;
++    status.textContent = avatar.character ? '已应用' + characterName(avatar.character) + '。'
++      : avatar.enabled ? '已应用到桌面。' : '已切回内置形象。';
++  } catch (error) {
++    status.textContent = '保存失败。' + String(error);
++  } finally {
++    busy = false;
++    refresh();
++  }
++}
++
++apply.addEventListener('click', () => {
++  const image = selected ?? saved.image;
++  if (image && !busy) void save({ image, enabled: true });
++});
++restore.addEventListener('click', () => {
++  if (!busy) void save({ ...saved, enabled: false, character: null });
++});
++
++refresh();
++void invoke<boolean>('has_portrait_rig').then((available) => { motionSection.hidden = !available; }).catch(() => {});
++void invoke<Avatar>('get_avatar')
++  .then((avatar) => {
++    saved = avatar;
++    status.textContent = avatar.character ? '当前使用' + characterName(avatar.character) + '。'
++      : avatar.enabled ? '当前使用照片形象。' : '当前使用内置形象。';
++  })
++  .catch(() => { status.textContent = '读取已保存的形象失败，可以重新选择图片。'; })
++  .finally(() => { busy = false; refresh(); });
+diff --git a/src/catEngine.ts b/src/catEngine.ts
+index c1a6c5a0e2a1a5b133ca76ae355da299d6d26399..101940b55b7cdeca36a6ceeeb9bb4e636c89e270 100644
+--- a/src/catEngine.ts
++++ b/src/catEngine.ts
+@@ -10,6 +10,7 @@ import {
+ import { catAudio } from './audio';
+ import { resolveCustomSkin, type CatSkinConfig, type ResolvedSkin } from './catSkins';
+ import { DaFeiYuRenderer, type DaFeiYuLayout } from './dafeiyuRenderer';
++import { drawPortraitBody, drawPortraitForeground, type PortraitPose, type PortraitRig } from './portraitRig';
+ 
+ export const LOGICAL_W = 420;
+ export const LOGICAL_H = 440;
+@@ -241,6 +242,22 @@ export class KuroCatEngine {
+   private renderScale = 1.0;
+   private embedded = false;
+   private dafeiyu = new DaFeiYuRenderer();
++  private desktopAvatar: HTMLImageElement | null = null;
++  private portraitRig: PortraitRig | null = null;
++
++  private get usesDaFeiYu(): boolean {
++    return this.catBreed === 'dafeiyu' && !this.portraitRig;
++  }
++
++  public setPortraitRig(rig: PortraitRig | null): void {
++    this.portraitRig = rig;
++    this.wakeRendering();
++  }
++
++  public setDesktopAvatar(image: HTMLImageElement | null): void {
++    this.desktopAvatar = image;
++    this.wakeRendering();
++  }
+   private catTail = {
+     heldVks: new Set<number>(),
+     targetX: 320,
+@@ -279,7 +296,7 @@ export class KuroCatEngine {
+   public onPrivacyTyping(): void {
+     this.privacyTypingAt = performance.now();
+     this.wakeRendering(this.privacyTypingAt);
+-    if (this.catBreed === 'dafeiyu') {
++    if (this.usesDaFeiYu) {
+       this.dafeiyu.onPrivacyTyping();
+     }
+   }
+@@ -348,7 +365,7 @@ export class KuroCatEngine {
+       anim.lastHitAt = now;
+     }
+     const targetPt = this.getTailTargetPoint(spec);
+-    if (this.catBreed === 'dafeiyu') {
++    if (this.usesDaFeiYu) {
+       this.dafeiyu.triggerTailPreview(targetPt, this.buildDaFeiYuLayout());
+       return;
+     }
+@@ -510,7 +527,7 @@ export class KuroCatEngine {
+     let leftHeld = 0;
+     let rightHeld = 0;
+     let rightBusy = false;
+-    if (this.catBreed === 'dafeiyu') {
++    if (this.usesDaFeiYu) {
+       const busy = this.dafeiyu.getHandBusyState(now);
+       leftHeld = busy.leftHeld;
+       rightHeld = busy.rightHeld;
+@@ -541,7 +558,7 @@ export class KuroCatEngine {
+   }
+ 
+   private syncLayoutPositions(): void {
+-    const isBigFish = this.catBreed === 'dafeiyu';
++    const isBigFish = this.usesDaFeiYu;
+     if (this.keyboardLayout === '108') {
+       this.logicalW = 540;
+       this.logicalH = 456;
+@@ -572,7 +589,7 @@ export class KuroCatEngine {
+   }
+ 
+   public setCatAppearance(breedId: string, skin?: CatSkinConfig | null): void {
+-    if (breedId === 'dafeiyu') {
++    if (breedId === 'dafeiyu' && !this.portraitRig) {
+       this.catBreed = 'dafeiyu';
+       this.customSkin = null;
+       catAudio.setPurrIntensity(0);
+@@ -906,7 +923,7 @@ export class KuroCatEngine {
+   }
+ 
+   private pokeAnnoy(amount: number, now: number): void {
+-    if (this.catBreed === 'dafeiyu' || this.privacyMode) return;
++    if (this.usesDaFeiYu || this.privacyMode) return;
+     this.annoy = Math.max(0, Math.min(1, this.annoy + amount));
+     this.lastPokeAt = now;
+   }
+@@ -924,7 +941,7 @@ export class KuroCatEngine {
+   }
+ 
+   private recordPointerSpeed(nx: number, ny: number, now: number): void {
+-    if (this.catBreed === 'dafeiyu' || this.privacyMode) return;
++    if (this.usesDaFeiYu || this.privacyMode) return;
+     const gapMs = now - this.lastPointerSampleAt;
+     if (
+       this.lastPointerSampleX !== null &&
+@@ -1078,7 +1095,7 @@ export class KuroCatEngine {
+     const rawKeyPt = this.getKeyWorldCenter(spec);
+     const useTail = this.shouldUseTailForKey(spec, rawKeyPt, activelyMousing, prevAnyKeyAt, now);
+ 
+-    if (this.catBreed === 'dafeiyu') {
++    if (this.usesDaFeiYu) {
+       const dafeiyuLayout = this.buildDaFeiYuLayout();
+       const dafeiyuMouseBusy =
+         dafeiyuLayout.mouseLeft ||
+@@ -1286,8 +1303,8 @@ export class KuroCatEngine {
+     if (!this.embedded) {
+       this.recordPointerSpeed(nx, ny, now);
+     }
+-    this.mouseTargetOffsetX = (nx - 0.5) * (this.catBreed === 'dafeiyu' ? 14 : 20);
+-    this.mouseTargetOffsetY = (ny - 0.5) * (this.catBreed === 'dafeiyu' ? 11 : 18);
++    this.mouseTargetOffsetX = (nx - 0.5) * (this.usesDaFeiYu ? 14 : 20);
++    this.mouseTargetOffsetY = (ny - 0.5) * (this.usesDaFeiYu ? 11 : 18);
+     this.lastMouseMoveAt = now;
+ 
+     this.leftPaw.mode = 'mouse';
+@@ -1297,14 +1314,14 @@ export class KuroCatEngine {
+   private getMouseButtonColors(): { left: string; right: string; middle: string } {
+     const primary = this.customSkin
+       ? this.customSkin.accentColor
+-      : this.catBreed === 'dafeiyu'
++      : this.usesDaFeiYu
+         ? '#5cc8ff'
+         : this.catBreed === 'ragdoll'
+           ? '#7ac7ff'
+           : '#d4f044';
+     const scroll = this.customSkin
+       ? this.customSkin.accentSideColor
+-      : this.catBreed === 'dafeiyu'
++      : this.usesDaFeiYu
+         ? '#2563eb'
+         : this.catBreed === 'ragdoll'
+           ? '#4690d8'
+@@ -1374,6 +1391,12 @@ export class KuroCatEngine {
+     this.lastMouseClickAt = now;
+     this.dafeiyu.resetLeftHandForMouse();
+     this.dafeiyu.onMouseAction(now);
++    // A click can arrive after a key has already been assigned to the mouse hand.
++    if (this.portraitRig && !this.latestHeldKeyFor('right')) {
++      for (const held of this.heldKeys.values()) {
++        if (held.side === 'left') held.side = 'right';
++      }
++    }
+     this.leftPaw.mode = 'mouse';
+     this.leftPaw.impactSquash = 0.72;
+     this.leftPaw.lastActiveAt = now;
+@@ -1682,7 +1705,7 @@ export class KuroCatEngine {
+       now - this.lastAnyKeyAt < 650 ||
+       this.heldKeys.size > 0 ||
+       this.catTail.heldVks.size > 0;
+-    const isCatMode = this.catBreed !== 'dafeiyu';
++    const isCatMode = !this.usesDaFeiYu;
+ 
+     // 1) Alive cat emotional states: sleep (loaf + Zzz), curious (laser-pointer eyes), annoy -> cross (airplane ears + tail desk-thump), idle fidgets!
+     const sleepAfterMs = this.embedded ? 18_000 : 28_000;
+@@ -1864,7 +1887,7 @@ export class KuroCatEngine {
+     const wantPrivacy = this.privacyMode ? 1 : 0;
+     this.privacyClose += (wantPrivacy - this.privacyClose) * (1 - Math.exp(-14 * dt));
+     catAudio.setPurrIntensity(
+-      this.catBreed !== 'dafeiyu' && !this.privacyMode && this.squintAmount > 0.25 ? this.squintAmount : 0,
++      !this.usesDaFeiYu && !this.privacyMode && this.squintAmount > 0.25 ? this.squintAmount : 0,
+     );
+ 
+     // Dynamic ear spring (5.2Hz, damping 0.36): perks up when curious/excited, flattens into airplane ears when cross!
+@@ -1877,7 +1900,7 @@ export class KuroCatEngine {
+       : 0;
+     this.earPerkSpring.step(earTarget, dt);
+ 
+-    if (this.catBreed === 'dafeiyu') {
++    if (this.usesDaFeiYu) {
+       this.dafeiyu.update(dt, now, this.buildDaFeiYuLayout());
+     } else {
+       // Update plush cat tail key-patting physics for keys near the tail
+@@ -2192,7 +2215,33 @@ export class KuroCatEngine {
+     const breath = Math.sin(this.elapsed * breathFreq) * (1.0 + this.sleepAmount * 0.65);
+     const purrShift = this.squintAmount > 0.4 ? Math.sin(this.elapsed * 22) * 0.45 * this.squintAmount : 0;
+ 
+-    if (this.catBreed === 'dafeiyu') {
++    if (this.portraitRig) {
++      const pose = this.portraitPose(breath);
++      drawPortraitBody(ctx, this.portraitRig, pose);
++      this.drawMiniMouse(ctx);
++      this.drawKeyboard(ctx);
++      drawPortraitForeground(ctx, this.portraitRig, pose);
++      if (this.showKeyBubbles && !this.privacyMode) {
++        this.drawKeyBubbles(ctx);
++        this.drawMouseBadges(ctx);
++      }
++      ctx.restore();
++      return;
++    }
++
++    if (this.desktopAvatar) {
++      this.drawDesktopAvatar(ctx, this.desktopAvatar, breath);
++      this.drawMiniMouse(ctx);
++      this.drawKeyboard(ctx);
++      if (this.showKeyBubbles && !this.privacyMode) {
++        this.drawKeyBubbles(ctx);
++        this.drawMouseBadges(ctx);
++      }
++      ctx.restore();
++      return;
++    }
++
++    if (this.usesDaFeiYu) {
+       const now = performance.now();
+       const layout = this.buildDaFeiYuLayout();
+       this.dafeiyu.renderBody(ctx, now, layout);
+@@ -2214,10 +2263,7 @@ export class KuroCatEngine {
+     // Layer 2: Plush cat tail (above keyboard so near-tail key pats & angry desk-thumps land cleanly, yet tucked behind hip!)
+     this.drawTail(ctx);
+ 
+-    // Layer 3: Exact measured spine-deformable cat silhouette (ears, cheeks, neck, pear belly, grounded hind feet, eyes & tiny whiskers)
+     this.drawCatBody(ctx, breath, purrShift);
+-
+-    // Layer 4: True-scale velvety cat paws (tapered idle legs / planted diagonal mouse support leg / bent curled chest paw / plump round poking paw!)
+     this.drawPaw(ctx, this.leftPaw, breath);
+     this.drawPaw(ctx, this.rightPaw, breath);
+ 
+@@ -2233,6 +2279,55 @@ export class KuroCatEngine {
+     ctx.restore();
+   }
+ 
++  private portraitPose(breath: number): PortraitPose {
++    const spine = this.spinePoint(0.31, breath);
++    const middle = this.spinePoint(0.73, breath);
++    const contact = Math.max(this.mouseLeftPress, this.mouseRightPress, this.mouseMiddlePress) * 2.4;
++    const blink = this.isBlinking ? 1 - Math.abs(this.blinkProgress - 1) : 0;
++    const idle = this.idleAct;
++    const slowBlink = idle?.kind === 'slowBlink'
++      ? 0.92 * Math.sin(Math.PI * Math.max(0, Math.min(1, (performance.now() - idle.t0) / idle.dur)))
++      : 0;
++    return {
++      anchor: {
++        x: this.catCenterX + 10 + (middle.x - this.catCenterX) * 0.42,
++        y: this.kbCenterY - this.kbHeight * 0.39 + breath * 0.45,
++      },
++      headOffset: {
++        x: (spine.x - middle.x) * 0.68,
++        y: (spine.y - this.catTopY - this.catHeight * 0.31) * 0.44,
++      },
++      tilt: Math.max(-0.18, Math.min(0.18, this.headTilt)),
++      turn: this.faceTurnX,
++      gaze: { x: this.eyeLookX, y: this.eyeLookY },
++      closed: Math.max(blink, slowBlink, this.privacyClose, this.sleepAmount, this.squintAmount * 0.83),
++      left: { x: this.leftPaw.pos.x, y: this.leftPaw.pos.y - 8 + contact },
++      right: { x: this.rightPaw.pos.x, y: this.rightPaw.pos.y - 8 },
++      mouseHand: this.leftPaw.mode === 'mouse',
++      leftPress: Math.max(contact / 2.4, this.leftPaw.impactSquash * 1.3, this.leftPaw.mode === 'poke' ? 1 : 0),
++      rightPress: Math.max(this.rightPaw.impactSquash * 1.3, this.rightPaw.mode === 'poke' ? 1 : 0),
++      leftReach: 1 - this.leftPaw.idleWeight - this.leftPaw.curlWeight * 0.7,
++      rightReach: 1 - this.rightPaw.idleWeight - this.rightPaw.curlWeight * 0.82,
++    };
++  }
++
++  private drawDesktopAvatar(ctx: CanvasRenderingContext2D, image: HTMLImageElement, breath: number): void {
++    const maxHeight = this.catBaseY - this.catTopY - 12;
++    const scale = Math.min(218 / image.naturalWidth, maxHeight / image.naturalHeight);
++    const width = image.naturalWidth * scale;
++    const height = image.naturalHeight * scale;
++    const typing = this.bodyBob * 5.6;
++    const clicking = Math.max(this.mouseLeftPress, this.mouseRightPress, this.mouseMiddlePress);
++    const tilt = this.mouseOffsetX * 0.006 + this.strikeRockVel * 0.002 + this.sleepAmount * 0.06;
++
++    ctx.save();
++    ctx.translate(this.catCenterX + this.mouseOffsetX * 0.55, this.catBaseY + breath + typing + clicking * 3);
++    ctx.rotate(tilt);
++    ctx.scale(1 + clicking * 0.027, 1 - clicking * 0.035 - this.sleepAmount * 0.035);
++    ctx.drawImage(image, -width / 2, -height, width, height);
++    ctx.restore();
++  }
++
+   private onTailDeskSlam(now: number): void {
+     this.lastSlamAt = now;
+     const hipRight = this.spinePoint(0.84, 0);
+@@ -3551,9 +3646,9 @@ export class KuroCatEngine {
+     ctx.restore();
+ 
+     const pickerAccentTop =
+-      this.catBreed === 'dafeiyu' ? '#5cc8ff' : this.catBreed === 'ragdoll' ? '#7ac7ff' : '#c8f538';
++      this.usesDaFeiYu ? '#5cc8ff' : this.catBreed === 'ragdoll' ? '#7ac7ff' : '#c8f538';
+     const pickerAccentSide =
+-      this.catBreed === 'dafeiyu' ? '#2563eb' : this.catBreed === 'ragdoll' ? '#4690d8' : '#8cb014';
++      this.usesDaFeiYu ? '#2563eb' : this.catBreed === 'ragdoll' ? '#4690d8' : '#8cb014';
+ 
+     ctx.fillStyle = '#24262c';
+     ctx.strokeStyle = this.tailPickerActive ? pickerAccentTop : '#363840';
+@@ -3600,14 +3695,14 @@ export class KuroCatEngine {
+       if (press > 0.14) {
+         topColor = this.customSkin
+           ? this.customSkin.accentColor
+-          : this.catBreed === 'dafeiyu'
++          : this.usesDaFeiYu
+             ? '#5cc8ff'
+             : this.catBreed === 'ragdoll'
+               ? '#7ac7ff'
+               : '#d2f244';
+         sideColor = this.customSkin
+           ? this.customSkin.accentSideColor
+-          : this.catBreed === 'dafeiyu'
++          : this.usesDaFeiYu
+             ? '#2563eb'
+             : this.catBreed === 'ragdoll'
+               ? '#4690d8'
+@@ -3694,7 +3789,7 @@ export class KuroCatEngine {
+       ctx.textAlign = 'center';
+       ctx.textBaseline = 'middle';
+       const dots = performance.now() - this.privacyTypingAt < 350 ? ' • • •' : '';
+-      const label = this.catBreed === 'dafeiyu' ? '🔒 非礼勿视 · 已隐藏按键' : '🔒 密码输入中 · 已隐藏按键';
++      const label = this.usesDaFeiYu ? '🔒 非礼勿视 · 已隐藏按键' : '🔒 密码输入中 · 已隐藏按键';
+       ctx.fillText(label + dots, 0, 0);
+       ctx.restore();
+     }
+diff --git a/src/main.ts b/src/main.ts
+index d9020e664b039e5aea63575b575ae21b124eb1b6..4e6b2b2a67f155b70f117cf2fd65eaef017e6727 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -2,6 +2,7 @@ import './style.css';
+ import { invoke } from '@tauri-apps/api/core';
+ import { listen } from '@tauri-apps/api/event';
+ import { getCurrentWindow } from '@tauri-apps/api/window';
++import { decodePortrait, type PortraitRig, type PortraitSource } from './portraitRig';
+ import {
+   DEFAULT_TAIL_KEY_IDS,
+   KuroCatEngine,
+@@ -117,7 +118,7 @@ let settings: AppSettings = {
+   autostart: false,
+   catBreed: 'black',
+   mcpEnabled: true,
+-  mcpPort: 27420,
++  mcpPort: 27422,
+   keyboardLayout: '65',
+   keyboardOrientation: 'cat',
+   privacyPasswordGuard: true,
+@@ -157,6 +158,35 @@ let webgl3dUnavailable = false;
+ let isWin7Ulw = false;
+ let active3d = false;
+ let privacyActive = false;
++let avatarActive = false;
++let activePortraitRig: PortraitRig | null = null;
++let avatarLoadId = 0;
++
++async function loadDesktopAvatar(): Promise<void> {
++  const loadId = ++avatarLoadId;
++  try {
++    const avatar = await invoke<{ image: string | null; enabled: boolean; character?: string | null }>('get_avatar');
++    let rig: PortraitRig | null = null;
++    if (avatar.character) {
++      const source = await invoke<PortraitSource | null>('get_portrait_rig', { character: avatar.character });
++      if (source) rig = await decodePortrait(source);
++    }
++    let image: HTMLImageElement | null = null;
++    if (!rig && (avatar.enabled || avatar.character === 'photographed-portrait') && avatar.image) {
++      image = new Image();
++      image.src = avatar.image;
++      await image.decode();
++    }
++    if (loadId !== avatarLoadId) return;
++    avatarActive = Boolean(image);
++    activePortraitRig = rig;
++    engine.setDesktopAvatar(image);
++    engine.setPortraitRig(rig);
++    syncMenuUI();
++  } catch (error) {
++    console.error('Failed to load desktop avatar:', error);
++  }
++}
+ let gameActive = false;
+ 
+ function shouldWearHeadphonesNow(): boolean {
+@@ -172,6 +202,8 @@ function shouldWearHeadphonesNow(): boolean {
+ 
+ function wants3DNow(): boolean {
+   return (
++    !avatarActive &&
++    !activePortraitRig &&
+     settings.renderMode !== '2d' &&
+     settings.catBreed !== 'dafeiyu' &&
+     !tailPickerOpen &&
+@@ -376,7 +408,7 @@ function syncMenuUI(): void {
+   engine.setCatAppearance(activeCat?.id || 'black', activeCat);
+   engine.setHeadphones(shouldWearHeadphonesNow());
+   engine.setKeyboardConfig(kbLayout, kbOrient);
+-  engine.setTailKeyConfig(tailMode, tailIds);
++  engine.setTailKeyConfig(activePortraitRig ? 'off' : tailMode, tailIds);
+   if (!sliderDragging) {
+     engine.setRenderScale(settings.scale);
+   }
+@@ -747,6 +779,8 @@ async function triggerManualUpdateCheck(): Promise<void> {
+ 
+ async function bootstrap(): Promise<void> {
+   engine.start();
++  await listen('kuro-avatar-changed', () => { void loadDesktopAvatar(); });
++  await loadDesktopAvatar();
+ 
+   // Hide Windows-only desktop shortcut button on macOS
+   if (/Mac/i.test(navigator.platform) || /Macintosh/i.test(navigator.userAgent)) {
+@@ -1103,6 +1137,10 @@ async function bootstrap(): Promise<void> {
+     }
+ 
+     switch (target.dataset.action) {
++      case 'custom-avatar':
++        closeContextMenu();
++        void invoke('open_avatar_window').catch((error) => console.error('Failed to open avatar editor:', error));
++        break;
+       case 'toggle-privacy':
+         void applySettingsPatch({ privacyPasswordGuard: !(settings.privacyPasswordGuard !== false) });
+         break;
+diff --git a/src/menuMain.ts b/src/menuMain.ts
+index 4898f2ca2aa8391b75a00013af9a7f6640e47cb1..c049f4ff14b8f83bc427d9e8a34a619c9d6ee7b5 100644
+--- a/src/menuMain.ts
++++ b/src/menuMain.ts
+@@ -61,14 +61,14 @@ let settings: AppSettings = {
+   autostart: false,
+   catBreed: 'black',
+   mcpEnabled: true,
+-  mcpPort: 27420,
++  mcpPort: 27422,
+   keyboardLayout: '65',
+   keyboardOrientation: 'cat',
+   privacyPasswordGuard: true,
+   tailKeyMode: 'smart',
+   tailKeyIds: [...DEFAULT_TAIL_KEY_IDS],
+   obsEnabled: false,
+-  obsPort: 27421,
++  obsPort: 27423,
+   obsHidePet: false,
+   renderMode: '3d',
+   collarColor: 'none',
+@@ -141,7 +141,7 @@ function syncUI(): void {
+   }
+   const obsHint = document.getElementById('obs-copy-hint');
+   if (obsHint && !obsHint.classList.contains('copied')) {
+-    obsHint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27421}` : '免抠像';
++    obsHint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27423}` : '免抠像';
+   }
+ 
+   if (!sliderDragging) {
+@@ -269,7 +269,7 @@ async function copyObsUrl(): Promise<void> {
+       hint.classList.add('copied');
+       setTimeout(() => {
+         hint.classList.remove('copied');
+-        hint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27421}` : '免抠像';
++        hint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27423}` : '免抠像';
+       }, 2000);
+     }
+   } catch (err) {
+@@ -451,6 +451,10 @@ async function bootstrap(): Promise<void> {
+     }
+ 
+     switch (target.dataset.action) {
++      case 'custom-avatar':
++        closeMenu();
++        void invoke('open_avatar_window').catch((error) => console.error('Failed to open avatar editor:', error));
++        break;
+       case 'toggle-privacy':
+         void applySettingsPatch({ privacyPasswordGuard: !(settings.privacyPasswordGuard !== false) });
+         break;
+diff --git a/src/portraitRig.ts b/src/portraitRig.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..01f6ecb9cbe069b890f5b5e1fa7892c58a44c477
+--- /dev/null
++++ b/src/portraitRig.ts
+@@ -0,0 +1,349 @@
++interface Point { x: number; y: number }
++interface LayerSource extends Point { src: string }
++interface Layer extends Point { image: HTMLImageElement }
++interface EyeSource {
++  cx: number;
++  cy: number;
++  outline: [number, number][];
++  fill: LayerSource;
++  iris: LayerSource;
++  blink: LayerSource;
++}
++interface Eye {
++  outline: Path2D;
++  fill: Layer;
++  iris: Layer;
++  blink: Layer;
++}
++interface AnimeGeometry {
++  states: number;
++  width: number;
++  height: number;
++  waist: number;
++  neck: [number, number];
++  faceEnd: number;
++  collar: number;
++}
++interface BoundArm<T> {
++  joints: [Point, Point, Point, Point];
++  parts: T[];
++}
++interface Articulation<T> {
++  torso: T;
++  arms: BoundArm<T>[];
++}
++interface AnimeSource extends AnimeGeometry {
++  kind: 'anime';
++  articulation?: Articulation<LayerSource>;
++  atlas: string;
++  eyes: EyeSource[];
++}
++interface AnimeRig extends AnimeGeometry {
++  atlas: HTMLImageElement;
++  articulation?: Articulation<Layer>;
++  eyes: Eye[];
++}
++export type PortraitSource = PhotoSource | AnimeSource;
++export type PortraitRig = PhotoRig | AnimeRig;
++interface PhotoSource {
++  surface?: LayerSource;
++  body: LayerSource;
++  head: LayerSource;
++  upper: LayerSource;
++  forearm: LayerSource;
++  hand: LayerSource;
++  eyes: EyeSource[];
++}
++interface PhotoRig {
++  surface: Layer;
++  body: Layer;
++  head: Layer;
++  upper: Layer;
++  forearm: Layer;
++  hand: Layer;
++  eyes: Eye[];
++}
++export interface PortraitPose {
++  anchor: Point;
++  headOffset: Point;
++  tilt: number;
++  turn: number;
++  gaze: Point;
++  closed: number;
++  left: Point;
++  right: Point;
++  mouseHand: boolean;
++  leftPress: number;
++  rightPress: number;
++  leftReach: number;
++  rightReach: number;
++}
++
++const SCALE = 0.40;
++const HIP = { x: 275, y: 622 };
++const NECK = { x: 254, y: 224 };
++const SHOULDER = { x: 276, y: 283 };
++const ELBOW = { x: 221, y: 463 };
++const WRIST = { x: 110, y: 624 };
++const FAR_SHOULDER = { x: 313, y: 270 };
++const mix = (a: number, b: number, t: number): number => a + (b - a) * t;
++const angle = (a: Point, b: Point): number => Math.atan2(b.y - a.y, b.x - a.x);
++const distance = (a: Point, b: Point): number => Math.hypot(b.x - a.x, b.y - a.y);
++
++async function decode(source: LayerSource): Promise<Layer> {
++  const image = new Image();
++  image.src = source.src;
++  await image.decode();
++  return { x: source.x, y: source.y, image };
++}
++
++export async function decodePortrait(source: PortraitSource): Promise<PortraitRig> {
++  const eyeLayers = Promise.all(source.eyes.map(async (eye) => {
++      const [fill, iris, blink] = await Promise.all([decode(eye.fill), decode(eye.iris), decode(eye.blink)]);
++      const outline = new Path2D();
++      outline.moveTo(...eye.outline[0]);
++      for (const vertex of eye.outline.slice(1)) outline.lineTo(...vertex);
++      outline.closePath();
++      return { outline, fill, iris, blink };
++    }));
++  if ('kind' in source) {
++    const [atlas, eyes] = await Promise.all([decode({x: 0, y: 0, src: source.atlas}), eyeLayers]);
++    const { width, height, states, waist, neck, faceEnd, collar } = source;
++    if (atlas.image.width !== width * states || atlas.image.height !== height * states) {
++      throw new Error('角色动作图尺寸不匹配');
++    }
++    const articulated = source.articulation;
++    const articulation = articulated ? {
++      torso: await decode(articulated.torso),
++      arms: await Promise.all(articulated.arms.map(async arm => ({
++        joints: arm.joints,
++        parts: await Promise.all(arm.parts.map(decode)),
++      }))),
++    } : undefined;
++    return { atlas: atlas.image, eyes, width, height, states, waist, neck, faceEnd, collar, articulation };
++  }
++  const [body, head, upper, forearm, hand, eyes] = await Promise.all([
++    decode(source.body), decode(source.head), decode(source.upper), decode(source.forearm),
++    decode(source.hand), eyeLayers,
++  ]);
++  // Older saved portraits stored two complementary pieces in the same photo coordinates.
++  let surface: Layer;
++  if (source.surface) {
++    surface = await decode(source.surface);
++  } else {
++    const canvas = document.createElement('canvas');
++    canvas.width = Math.max(body.x + body.image.width, head.x + head.image.width);
++    canvas.height = Math.max(body.y + body.image.height, head.y + head.image.height);
++    const ctx = canvas.getContext('2d')!;
++    paint(ctx, body);
++    paint(ctx, head);
++    surface = await decode({ x: 0, y: 0, src: canvas.toDataURL() });
++  }
++  return { surface, body, head, upper, forearm, hand, eyes };
++}
++
++function paint(ctx: CanvasRenderingContext2D, layer: Layer, x = 0, y = 0): void {
++  ctx.drawImage(layer.image, layer.x + x, layer.y + y);
++}
++
++function toWorld(pose: PortraitPose, point: Point): Point {
++  return {
++    x: pose.anchor.x + (point.x - HIP.x) * SCALE,
++    y: pose.anchor.y + (point.y - HIP.y) * SCALE,
++  };
++}
++
++function drawBone(
++  ctx: CanvasRenderingContext2D, layer: Layer, start: Point, end: Point,
++  from: Point, to: Point, mirror: boolean, thickness = SCALE,
++): void {
++  const sourceAngle = angle(start, end);
++  const targetAngle = angle(from, to);
++  const length = Math.max(0.21, distance(from, to) / distance(start, end));
++  ctx.save();
++  ctx.translate(from.x, from.y);
++  ctx.rotate(targetAngle);
++  ctx.scale(length, mirror ? -thickness : thickness);
++  ctx.rotate(-sourceAngle);
++  ctx.translate(-start.x, -start.y);
++  paint(ctx, layer);
++  ctx.restore();
++}
++
++function drawHand(
++  ctx: CanvasRenderingContext2D, layer: Layer, at: Point, direction: number, mirror: boolean,
++): void {
++  ctx.save();
++  ctx.translate(at.x, at.y);
++  ctx.rotate(direction);
++  ctx.scale(SCALE, mirror ? -SCALE : SCALE);
++  ctx.rotate(-angle(ELBOW, WRIST));
++  ctx.translate(-WRIST.x, -WRIST.y);
++  paint(ctx, layer);
++  ctx.restore();
++}
++
++function drawArm(ctx: CanvasRenderingContext2D, rig: PhotoRig, pose: PortraitPose, mirror: boolean): void {
++  const amount = Math.max(0, Math.min(1, mirror ? pose.rightReach : pose.leftReach));
++  if (mirror && amount < 0.07) return;
++  const shoulder = toWorld(pose, mirror ? FAR_SHOULDER : SHOULDER);
++  const rest = toWorld(pose, WRIST);
++  const elbowRest = toWorld(pose, ELBOW);
++  const relaxed = mirror ? { x: shoulder.x + 18, y: shoulder.y + 98 } : rest;
++  const target = mirror ? pose.right : pose.left;
++  const wrist = { x: mix(relaxed.x, target.x, amount), y: mix(relaxed.y, target.y, amount) };
++  const span = Math.max(1, distance(shoulder,wrist));
++  const upperLength = distance(SHOULDER,ELBOW) * SCALE;
++  const lowerLength = distance(ELBOW,WRIST) * SCALE;
++  const stretch = Math.max(1, (span + 1.6) / (upperLength + lowerLength));
++  const upper = upperLength * stretch;
++  const lower = lowerLength * stretch;
++  const projected = (upper * upper - lower * lower + span * span) / (2 * span);
++  const bend = Math.sqrt(Math.max(0,upper * upper - projected * projected)) * (mirror ? 1 : -1);
++  const nx = (wrist.x - shoulder.x) / span;
++  const ny = (wrist.y - shoulder.y) / span;
++  const joint = { x: shoulder.x + nx * projected - ny * bend, y: shoulder.y + ny * projected + nx * bend };
++  const elbow = mirror ? joint : { x: mix(elbowRest.x,joint.x,amount), y: mix(elbowRest.y,joint.y,amount) };
++
++  ctx.save();
++  if (mirror) ctx.globalAlpha = Math.min(1,amount * 3.5);
++  drawBone(ctx,rig.upper,SHOULDER,ELBOW,shoulder,elbow,mirror);
++  drawBone(ctx,rig.forearm,ELBOW,WRIST,elbow,wrist,mirror);
++  drawHand(ctx,rig.hand,wrist,angle(elbow,wrist),mirror);
++  ctx.restore();
++}
++
++export function drawPortraitBody(ctx: CanvasRenderingContext2D, rig: PortraitRig, pose: PortraitPose): void {
++  const anime = 'atlas' in rig ? rig : null;
++  if ('surface' in rig) drawArm(ctx,rig,pose,true);
++  const scale = anime ? 228 / anime.waist : SCALE;
++  const origin = anime
++    ? { x: pose.anchor.x - anime.width * scale / 2, y: pose.anchor.y - anime.waist * scale }
++    : toWorld(pose, { x: 0, y: 0 });
++  const neck = anime ? { x: anime.neck[0], y: anime.neck[1] } : NECK;
++  const frame = (press: number) => Math.round(Math.min(1, Math.max(0, press)) * ((anime?.states ?? 1) - 1));
++  const frameX = frame(pose.leftPress);
++  const frameY = frame(pose.rightPress);
++  ctx.save();
++  ctx.translate(origin.x, origin.y);
++  ctx.scale(scale, scale);
++  const base = ctx.getTransform();
++  const rotation = Math.max(-0.065, Math.min(0.065, pose.tilt * 0.42 + pose.turn * 0.004));
++  const nod = Math.max(-1.5, Math.min(1.5, pose.headOffset.y * 0.24));
++  const turn = Math.max(-2, Math.min(2, pose.turn * 0.16));
++
++  function followHead(weight: number): void {
++    ctx.setTransform(base);
++    ctx.translate(neck.x + turn * weight, neck.y + nod * weight);
++    ctx.rotate(rotation * weight);
++    ctx.translate(-neck.x, -neck.y);
++  }
++
++  // Clip in integer device pixels. Every output row samples the same photograph
++  // exactly once, including along the jaw, through the neck and at the collar.
++  const faceEnd = Math.round(base.f + base.d * (anime?.faceEnd ?? 154));
++  const collar = Math.max(faceEnd + 1, Math.round(base.f + base.d * (anime?.collar ?? 252)));
++  function band(top: number, bottom: number, weight: number): void {
++    top = Math.max(0, top);
++    bottom = Math.min(ctx.canvas.height, bottom);
++    if (top >= bottom) return;
++    ctx.save();
++    ctx.resetTransform();
++    ctx.beginPath();
++    ctx.rect(0, top, ctx.canvas.width, bottom - top);
++    ctx.clip();
++    followHead(weight);
++    if ('surface' in rig) {
++      paint(ctx, rig.surface);
++    } else if (rig.articulation) {
++      paint(ctx, rig.articulation.torso);
++    } else {
++      ctx.drawImage(rig.atlas, frameX * rig.width, frameY * rig.height, rig.width, rig.height,
++        0, 0, rig.width, rig.height);
++    }
++    ctx.restore();
++  }
++  band(0, faceEnd, 1);
++  for (let row = Math.max(0, faceEnd); row < Math.min(collar, ctx.canvas.height); row++) {
++    const t = (collar - row - 0.5) / (collar - faceEnd);
++    band(row, row + 1, t * t * (3 - 2 * t));
++  }
++  band(collar, ctx.canvas.height, 0);
++  followHead(1);
++  for (const eye of rig.eyes) {
++    if (pose.closed < 0.87 && Math.hypot(pose.gaze.x,pose.gaze.y) > 0.12) {
++      ctx.save();
++      ctx.clip(eye.outline);
++      ctx.globalAlpha = Math.min(1,Math.hypot(pose.gaze.x,pose.gaze.y) * 2.6);
++      paint(ctx,eye.fill);
++      paint(ctx,eye.iris,pose.gaze.x * 3.2,pose.gaze.y * 1.75);
++      ctx.restore();
++    }
++    if (pose.closed > 0.12) {
++      ctx.save();
++      ctx.globalAlpha = Math.min(1,(pose.closed - 0.12) / 0.72);
++      paint(ctx,eye.blink);
++      ctx.restore();
++    }
++  }
++  ctx.restore();
++}
++
++function drawIllustratedArm(ctx: CanvasRenderingContext2D, rig: AnimeRig, pose: PortraitPose,
++  arm: BoundArm<Layer>, side: number): void {
++  const scale = 228 / rig.waist;
++  const world = (p: Point): Point => ({
++    x: pose.anchor.x + (p.x - rig.width / 2) * scale,
++    y: pose.anchor.y + (p.y - rig.waist) * scale,
++  });
++  const blend = (p: Point, q: Point, t: number): Point => ({ x: mix(p.x, q.x, t), y: mix(p.y, q.y, t) });
++  const [s, e, w, tip] = arm.joints;
++  const shoulder = world(s);
++  const press = Math.min(1, side ? pose.rightPress : pose.leftPress);
++  const hover = !side && pose.mouseHand ? 0.74 + 0.26 * press : 1;
++  const reach = hover * Math.max(0, Math.min(1, side ? pose.rightReach : pose.leftReach));
++  const at = side ? pose.right : pose.left;
++  const contact = { x: at.x, y: at.y + 8 - (1 - press) * 18 };
++  const direction = side ? 1.20 : 1.84;
++  const handLength = distance(w, tip) * scale;
++  const wrist = {
++    x: contact.x - Math.cos(direction) * handLength,
++    y: contact.y - Math.sin(direction) * handLength,
++  };
++  const span = Math.max(1, distance(shoulder, wrist));
++  // Foreshortened artwork still needs two segments when the arm opens out.
++  const upper = Math.max(42, distance(s, e) * scale);
++  const lower = Math.max(42, distance(e, w) * scale);
++  const stretch = Math.max(1, (span + 4) / (upper + lower));
++  const along = Math.min(span, Math.max(0, (span * span + stretch * stretch * (upper * upper - lower * lower)) / (2 * span)));
++  const bend = (side ? -1 : 1) * Math.sqrt(Math.max(0, (upper * stretch) ** 2 - along ** 2));
++  const dx = (wrist.x - shoulder.x) / span;
++  const dy = (wrist.y - shoulder.y) / span;
++  const elbow = { x: shoulder.x + dx * along - dy * bend, y: shoulder.y + dy * along + dx * bend };
++  const targets = [shoulder, blend(world(e), elbow, reach), blend(world(w), wrist, reach)];
++  // Rotate the hand as one rigid piece when a folded arm changes direction.
++  const startAngle = angle(w, tip);
++  const delta = Math.atan2(Math.sin(direction - startAngle), Math.cos(direction - startAngle));
++  const handAngle = startAngle + reach * delta;
++  targets.push({ x: targets[2].x + handLength * Math.cos(handAngle), y: targets[2].y + handLength * Math.sin(handAngle) });
++  for (let i = 0; i < 3; i++) {
++    drawBone(ctx, arm.parts[i], arm.joints[i], arm.joints[i+1], targets[i], targets[i+1], false, scale);
++  }
++}
++
++export function drawPortraitForeground(ctx: CanvasRenderingContext2D, rig: PortraitRig, pose: PortraitPose): void {
++  if ('atlas' in rig) {
++    rig.articulation?.arms.forEach((arm, side) => drawIllustratedArm(ctx, rig, pose, arm, side));
++    return;
++  }
++  drawArm(ctx,rig,pose,false);
++  // The far arm is visible in front of the keyboard once it leaves its shoulder occlusion.
++  if (pose.rightReach > 0.15) {
++    ctx.save();
++    ctx.beginPath();
++    ctx.rect(0,pose.anchor.y - 7,pose.anchor.x * 2 + 180,112);
++    ctx.clip();
++    drawArm(ctx,rig,pose,true);
++    ctx.restore();
++  }
++}
+diff --git a/vite.config.ts b/vite.config.ts
+index 8a165bbd655110fea32908a511542fbd249f48b4..79ca8f7f1c1cfe69c3fec963077c002ce486503b 100644
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -10,6 +10,7 @@ export default defineConfig({
+       input: {
+         main: path.resolve(__dirname, 'index.html'),
+         menu: path.resolve(__dirname, 'menu.html'),
++        avatar: path.resolve(__dirname, 'avatar.html'),
+         obs: path.resolve(__dirname, 'obs.html'),
+       },
+     },
