@@ -1531,10 +1531,10 @@ index 4898f2ca2aa8391b75a00013af9a7f6640e47cb1..c049f4ff14b8f83bc427d9e8a34a619c
          break;
 diff --git a/src/portraitRig.ts b/src/portraitRig.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..01f6ecb9cbe069b890f5b5e1fa7892c58a44c477
+index 0000000000000000000000000000000000000000..b6ce17058f745675929bee8938f04f753cfb31ad
 --- /dev/null
 +++ b/src/portraitRig.ts
-@@ -0,0 +1,349 @@
+@@ -0,0 +1,358 @@
 +interface Point { x: number; y: number }
 +interface LayerSource extends Point { src: string }
 +interface Layer extends Point { image: HTMLImageElement }
@@ -1841,28 +1841,37 @@ index 0000000000000000000000000000000000000000..01f6ecb9cbe069b890f5b5e1fa7892c5
 +  const reach = hover * Math.max(0, Math.min(1, side ? pose.rightReach : pose.leftReach));
 +  const at = side ? pose.right : pose.left;
 +  const contact = { x: at.x, y: at.y + 8 - (1 - press) * 18 };
-+  const direction = side ? 1.20 : 1.84;
++  const fingertip = blend(world(tip), contact, reach);
 +  const handLength = distance(w, tip) * scale;
-+  const wrist = {
-+    x: contact.x - Math.cos(direction) * handLength,
-+    y: contact.y - Math.sin(direction) * handLength,
-+  };
-+  const span = Math.max(1, distance(shoulder, wrist));
-+  // Foreshortened artwork still needs two segments when the arm opens out.
-+  const upper = Math.max(42, distance(s, e) * scale);
-+  const lower = Math.max(42, distance(e, w) * scale);
-+  const stretch = Math.max(1, (span + 4) / (upper + lower));
-+  const along = Math.min(span, Math.max(0, (span * span + stretch * stretch * (upper * upper - lower * lower)) / (2 * span)));
-+  const bend = (side ? -1 : 1) * Math.sqrt(Math.max(0, (upper * stretch) ** 2 - along ** 2));
-+  const dx = (wrist.x - shoulder.x) / span;
-+  const dy = (wrist.y - shoulder.y) / span;
++  const upperRest = distance(s, e) * scale;
++  const foreRest = distance(e, w) * scale;
++  const upper = mix(upperRest, Math.max(42, upperRest), reach);
++  const fore = mix(foreRest, Math.max(42, foreRest), reach);
++
++  // Solve to the fingertip. The hand keeps the source wrist bend as the
++  // elbow opens, relaxing toward a straight wrist for mouse and key contact.
++  const sourceBend = angle(w, tip) - angle(e, w);
++  const wristBend = Math.atan2(Math.sin(sourceBend), Math.cos(sourceBend)) * (1 - 0.78 * reach);
++  const span = Math.max(0.001, distance(shoulder, fingertip));
++  const stretch = Math.max(1, (span + 2 * reach - handLength * Math.cos(wristBend)) / (upper + fore));
++  const foreLength = fore * stretch;
++  const handX = handLength * Math.cos(wristBend);
++  const handY = handLength * Math.sin(wristBend);
++  const elbowToTip = Math.hypot(foreLength + handX, handY);
++  const upperLength = Math.min(span + elbowToTip, Math.max(Math.abs(span - elbowToTip), upper * stretch));
++  const along = (upperLength ** 2 + span ** 2 - elbowToTip ** 2) / (2 * span);
++  const sourceCross = (tip.x - s.x) * (e.y - s.y) - (tip.y - s.y) * (e.x - s.x);
++  const sideOfArm = Math.sign(sourceCross) || (side ? -1 : 1);
++  const bend = sideOfArm * Math.sqrt(Math.max(0, upperLength ** 2 - along ** 2));
++  const dx = (fingertip.x - shoulder.x) / span;
++  const dy = (fingertip.y - shoulder.y) / span;
 +  const elbow = { x: shoulder.x + dx * along - dy * bend, y: shoulder.y + dy * along + dx * bend };
-+  const targets = [shoulder, blend(world(e), elbow, reach), blend(world(w), wrist, reach)];
-+  // Rotate the hand as one rigid piece when a folded arm changes direction.
-+  const startAngle = angle(w, tip);
-+  const delta = Math.atan2(Math.sin(direction - startAngle), Math.cos(direction - startAngle));
-+  const handAngle = startAngle + reach * delta;
-+  targets.push({ x: targets[2].x + handLength * Math.cos(handAngle), y: targets[2].y + handLength * Math.sin(handAngle) });
++  const handAngle = angle(elbow, fingertip) - Math.atan2(handY, foreLength + handX) + wristBend;
++  const wrist = {
++    x: fingertip.x - handLength * Math.cos(handAngle),
++    y: fingertip.y - handLength * Math.sin(handAngle),
++  };
++  const targets = [shoulder, elbow, wrist, fingertip];
 +  for (let i = 0; i < 3; i++) {
 +    drawBone(ctx, arm.parts[i], arm.joints[i], arm.joints[i+1], targets[i], targets[i+1], false, scale);
 +  }

@@ -38,6 +38,9 @@ python tools/bind_arms.py my-art.png atlas.json examples/arms.json luffy-rig.jso
 
 ## 验证
 
+在补丁仓库根目录运行 `node tools/check_wrist.cjs desktop`，可检查双手伸出、收回时的腕角、掌面朝向、关节连接和按键落点。测试使用合成坐标，需要先在 desktop 中安装前端依赖。
+
+
 在 Windows 定制版的三个本地角色上检查了握鼠、双手组合键、按住与释放、A/L 两个不同落点、眼球跟随、闭眼和衣领固定。原图中被遮住的衣服和肢体需要逐角色校正。公开仓库不含测试人员的照片、角色图集、模型权重或桌面截图。
 
 本项目保留上游 MIT 许可与版权声明。第三方角色美术不随源码分发。
